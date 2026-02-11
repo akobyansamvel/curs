@@ -11,6 +11,7 @@ import CreateComplaint from '../components/complaints/CreateComplaint'
 import BanUserModal from '../components/moderation/BanUserModal'
 import CreateReviewFromProfile from '../components/reviews/CreateReviewFromProfile'
 import Breadcrumbs from '../components/common/Breadcrumbs'
+import { getMediaUrl } from '../services/mediaUrl'
 import './ProfilePage.css'
 
 function ProfilePage() {
@@ -25,6 +26,7 @@ function ProfilePage() {
   const [showComplaint, setShowComplaint] = useState(false)
   const [showBanModal, setShowBanModal] = useState(false)
   const [showReview, setShowReview] = useState(false)
+  const [photoError, setPhotoError] = useState(false)
   
   const isModerator = currentUser?.is_moderator || currentUser?.is_staff
 
@@ -40,6 +42,7 @@ function ProfilePage() {
       if (response.data.profile) {
         setProfile(response.data.profile)
         setProfileUser(response.data.user)
+        setPhotoError(false)
       } else {
         setProfile(null)
         setProfileUser(null)
@@ -113,8 +116,12 @@ function ProfilePage() {
       />
       <div className="profile-header">
         <div className="profile-photo">
-          {profile.photo ? (
-            <img src={profile.photo} alt="Фото профиля" />
+          {profile.photo && !photoError ? (
+            <img
+              src={getMediaUrl(profile.photo)}
+              alt="Фото профиля"
+              onError={() => setPhotoError(true)}
+            />
           ) : (
             <div className="photo-placeholder">Нет фото</div>
           )}
@@ -242,9 +249,7 @@ function ProfilePage() {
             />
           )}
 
-          {isOwnProfile && (
-            <UserRequestsSection userId={profileUser?.id} isOwnProfile={isOwnProfile} />
-          )}
+          <UserRequestsSection userId={profileUser?.id} isOwnProfile={isOwnProfile} />
 
           <ReviewsList userId={profileUser?.id} />
         </>

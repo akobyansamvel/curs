@@ -25,7 +25,7 @@
   font-weight: 500;
 }
 
-.form-group input,
+.form-group input:not([type="checkbox"]),
 .form-group select,
 .form-group textarea {
   width: 100%;
@@ -33,6 +33,28 @@
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 1rem;
+}
+
+.form-group-checkbox {
+  margin-bottom: 1.5rem;
+}
+
+.form-group-checkbox .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.form-group-checkbox .checkbox-label input[type="checkbox"] {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: #667eea;
 }
 
 .form-row {
@@ -87,7 +109,10 @@
 .photo-preview img {
   width: 100%;
   height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 .remove-photo {

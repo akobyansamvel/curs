@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../../services/api'
+import { getMediaUrl } from '../../services/mediaUrl'
 import './ProfileEdit.css'
 
 function ProfileEdit({ profile, onSave, onCancel }) {
@@ -206,7 +207,7 @@ function ProfileEdit({ profile, onSave, onCancel }) {
           </div>
           {photoPreview && (
             <div className="photo-preview-section">
-              <img src={photoPreview} alt="Превью фото" className="photo-preview" />
+              <img src={getMediaUrl(photoPreview)} alt="Превью фото" className="photo-preview" />
               <button
                 type="button"
                 onClick={handleDeletePhoto}

@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import { getMediaUrl } from '../../services/mediaUrl'
 import './Layout.css'
 
 const Icon = ({ children }) => (
@@ -25,12 +26,17 @@ function Layout({ children }) {
   const { user, logout } = useAuth()
   const location = useLocation()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [avatarError, setAvatarError] = useState(false)
   const menuRef = useRef(null)
 
   const handleLogout = async () => {
     await logout()
     window.location.href = '/'
   }
+
+  useEffect(() => {
+    setAvatarError(false)
+  }, [user?.id, user?.avatar])
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -129,11 +135,12 @@ function Layout({ children }) {
                   >
                     <span className="nav-link-inner">
                       <span className="user-avatar" aria-hidden="true">
-                        {user?.avatar ? (
+                        {user?.avatar && !avatarError ? (
                           <img
-                            src={user.avatar}
+                            src={getMediaUrl(user.avatar)}
                             alt=""
                             className="user-avatar-img"
+                            onError={() => setAvatarError(true)}
                           />
                         ) : (
                           <span className="user-avatar-fallback">

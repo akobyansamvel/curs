@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import MapPicker from '../components/map/MapPicker'
 import Breadcrumbs from '../components/common/Breadcrumbs'
+import { getMediaUrl } from '../services/mediaUrl'
 import './CreateRequestPage.css'
 
 function CreateRequestPage() {
@@ -300,7 +301,7 @@ function CreateRequestPage() {
             <div className="photos-preview">
               {photos.map((url, index) => (
                 <div key={index} className="photo-preview">
-                  <img src={url} alt={`Фото ${index + 1}`} />
+                  <img src={getMediaUrl(url)} alt={`Фото ${index + 1}`} />
                   <button
                     type="button"
                     onClick={() => handleRemovePhoto(index)}
@@ -340,8 +341,8 @@ function CreateRequestPage() {
           </div>
         </div>
 
-        <div className="form-group">
-          <label>
+        <div className="form-group form-group-checkbox">
+          <label className="checkbox-label">
             <input
               type="checkbox"
               name="rules_accepted"
@@ -349,7 +350,7 @@ function CreateRequestPage() {
               onChange={handleChange}
               required
             />
-            Согласен с правилами
+            <span>Согласен с правилами</span>
           </label>
         </div>
 

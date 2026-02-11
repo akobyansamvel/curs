@@ -18,116 +18,136 @@ function UserRequestsSection({ userId, isOwnProfile }) {
     }
   }, [userId, isOwnProfile])
 
+  useEffect(() => {
+    if (!isOwnProfile && userId) {
+      setActiveTab('active-created')
+    }
+  }, [userId, isOwnProfile])
+
   const loadRequests = async () => {
     try {
-      const targetUserId = userId || 'my'
-      
-      const createdRes = await api.get(`/requests/my/`)
-      const allCreated = createdRes.data || []
-      
       const now = new Date()
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      
-      const active = allCreated.filter(req => {
-        // Показываем активные и "набрана" заявки, которые ещё не прошли
-        if (req.status !== 'active' && req.status !== 'filled') return false
-        
-        const reqDate = new Date(req.date)
-        const reqDateOnly = new Date(reqDate.getFullYear(), reqDate.getMonth(), reqDate.getDate())
-        
-        if (reqDateOnly < today) return false
-        
-        if (reqDateOnly.getTime() === today.getTime() && req.time) {
-          const [hours, minutes] = req.time.split(':').map(Number)
-          const requestTime = new Date(today)
-          requestTime.setHours(hours, minutes, 0, 0)
-          
-          if (requestTime < now) return false
-        }
-        
-        return true
-      })
-      
-      const past = allCreated.filter(req => {
-        // В прошедшие попадают только завершенные или отмененные заявки
-        if (req.status === 'completed' || req.status === 'cancelled') return true
-        
-        // Заявки со статусом "filled" не попадают в прошедшие, пока не завершены
-        if (req.status === 'filled') return false
-        
-        // Для активных заявок проверяем дату
-        if (req.status === 'active') {
-          const reqDate = new Date(req.date)
-          const reqDateOnly = new Date(reqDate.getFullYear(), reqDate.getMonth(), reqDate.getDate())
-          
-          if (reqDateOnly < today) return true
-          
-          if (reqDateOnly.getTime() === today.getTime() && req.time) {
-            const [hours, minutes] = req.time.split(':').map(Number)
-            const requestTime = new Date(today)
-            requestTime.setHours(hours, minutes, 0, 0)
-            
-            if (requestTime < now) return true
-          }
-        }
-        
-        return false
-      })
-      
-      setActiveCreated(active)
-      setPastCreated(past)
 
-      const participationsRes = await api.get('/requests/my/participations/').catch(() => ({ data: [] }))
-      const userParticipations = participationsRes.data || []
-      
-      const activePart = userParticipations.filter(req => {
-        // Показываем активные и "набрана" заявки, которые ещё не прошли
-        if (req.status !== 'active' && req.status !== 'filled') return false
-        
-        const reqDate = new Date(req.date)
-        const reqDateOnly = new Date(reqDate.getFullYear(), reqDate.getMonth(), reqDate.getDate())
-        
-        if (reqDateOnly < today) return false
-        
-        if (reqDateOnly.getTime() === today.getTime() && req.time) {
-          const [hours, minutes] = req.time.split(':').map(Number)
-          const requestTime = new Date(today)
-          requestTime.setHours(hours, minutes, 0, 0)
-          
-          if (requestTime < now) return false
-        }
-        
-        return true
-      })
-      
-      const pastPart = userParticipations.filter(req => {
-        // В прошедшие попадают только завершенные или отмененные заявки
-        if (req.status === 'completed' || req.status === 'cancelled') return true
-        
-        // Заявки со статусом "filled" не попадают в прошедшие, пока не завершены
-        if (req.status === 'filled') return false
-        
-        // Для активных заявок проверяем дату
-        if (req.status === 'active') {
+      const isOtherProfile = !isOwnProfile && userId
+
+      if (isOtherProfile) {
+        // Чужой профиль: только созданные этим пользователем заявки
+        const createdRes = await api.get('/requests/', { params: { creator_id: userId } })
+        const allCreated = createdRes.data?.results ?? createdRes.data ?? []
+        const list = Array.isArray(allCreated) ? allCreated : []
+
+        const active = list.filter(req => {
+          if (req.status !== 'active' && req.status !== 'filled') return false
           const reqDate = new Date(req.date)
           const reqDateOnly = new Date(reqDate.getFullYear(), reqDate.getMonth(), reqDate.getDate())
-          
-          if (reqDateOnly < today) return true
-          
+          if (reqDateOnly < today) return false
           if (reqDateOnly.getTime() === today.getTime() && req.time) {
             const [hours, minutes] = req.time.split(':').map(Number)
             const requestTime = new Date(today)
             requestTime.setHours(hours, minutes, 0, 0)
-            
-            if (requestTime < now) return true
+            if (requestTime < now) return false
           }
-        }
-        
-        return false
-      })
-      
-      setActiveParticipations(activePart)
-      setPastParticipations(pastPart)
+          return true
+        })
+
+        const past = list.filter(req => {
+          if (req.status === 'completed' || req.status === 'cancelled') return true
+          if (req.status === 'filled') return false
+          if (req.status === 'active') {
+            const reqDate = new Date(req.date)
+            const reqDateOnly = new Date(reqDate.getFullYear(), reqDate.getMonth(), reqDate.getDate())
+            if (reqDateOnly < today) return true
+            if (reqDateOnly.getTime() === today.getTime() && req.time) {
+              const [hours, minutes] = req.time.split(':').map(Number)
+              const requestTime = new Date(today)
+              requestTime.setHours(hours, minutes, 0, 0)
+              if (requestTime < now) return true
+            }
+          }
+          return false
+        })
+
+        setActiveCreated(active)
+        setPastCreated(past)
+        setActiveParticipations([])
+        setPastParticipations([])
+      } else {
+        // Свой профиль: созданные + участия
+        const createdRes = await api.get('/requests/my/')
+        const allCreated = createdRes.data || []
+
+        const active = allCreated.filter(req => {
+          if (req.status !== 'active' && req.status !== 'filled') return false
+          const reqDate = new Date(req.date)
+          const reqDateOnly = new Date(reqDate.getFullYear(), reqDate.getMonth(), reqDate.getDate())
+          if (reqDateOnly < today) return false
+          if (reqDateOnly.getTime() === today.getTime() && req.time) {
+            const [hours, minutes] = req.time.split(':').map(Number)
+            const requestTime = new Date(today)
+            requestTime.setHours(hours, minutes, 0, 0)
+            if (requestTime < now) return false
+          }
+          return true
+        })
+
+        const past = allCreated.filter(req => {
+          if (req.status === 'completed' || req.status === 'cancelled') return true
+          if (req.status === 'filled') return false
+          if (req.status === 'active') {
+            const reqDate = new Date(req.date)
+            const reqDateOnly = new Date(reqDate.getFullYear(), reqDate.getMonth(), reqDate.getDate())
+            if (reqDateOnly < today) return true
+            if (reqDateOnly.getTime() === today.getTime() && req.time) {
+              const [hours, minutes] = req.time.split(':').map(Number)
+              const requestTime = new Date(today)
+              requestTime.setHours(hours, minutes, 0, 0)
+              if (requestTime < now) return true
+            }
+          }
+          return false
+        })
+
+        setActiveCreated(active)
+        setPastCreated(past)
+
+        const participationsRes = await api.get('/requests/my/participations/').catch(() => ({ data: [] }))
+        const userParticipations = participationsRes.data || []
+
+        const activePart = userParticipations.filter(req => {
+          if (req.status !== 'active' && req.status !== 'filled') return false
+          const reqDate = new Date(req.date)
+          const reqDateOnly = new Date(reqDate.getFullYear(), reqDate.getMonth(), reqDate.getDate())
+          if (reqDateOnly < today) return false
+          if (reqDateOnly.getTime() === today.getTime() && req.time) {
+            const [hours, minutes] = req.time.split(':').map(Number)
+            const requestTime = new Date(today)
+            requestTime.setHours(hours, minutes, 0, 0)
+            if (requestTime < now) return false
+          }
+          return true
+        })
+
+        const pastPart = userParticipations.filter(req => {
+          if (req.status === 'completed' || req.status === 'cancelled') return true
+          if (req.status === 'filled') return false
+          if (req.status === 'active') {
+            const reqDate = new Date(req.date)
+            const reqDateOnly = new Date(reqDate.getFullYear(), reqDate.getMonth(), reqDate.getDate())
+            if (reqDateOnly < today) return true
+            if (reqDateOnly.getTime() === today.getTime() && req.time) {
+              const [hours, minutes] = req.time.split(':').map(Number)
+              const requestTime = new Date(today)
+              requestTime.setHours(hours, minutes, 0, 0)
+              if (requestTime < now) return true
+            }
+          }
+          return false
+        })
+
+        setActiveParticipations(activePart)
+        setPastParticipations(pastPart)
+      }
     } catch (error) {
       console.error('Ошибка загрузки заявок:', error)
     } finally {
@@ -139,18 +159,24 @@ function UserRequestsSection({ userId, isOwnProfile }) {
     return <div className="user-requests-section">Загрузка заявок...</div>
   }
 
-  const tabs = [
-    { id: 'active-created', label: `Мои активные (${activeCreated.length})`, data: activeCreated },
-    { id: 'past-created', label: `Мои прошедшие (${pastCreated.length})`, data: pastCreated },
-    { id: 'active-participations', label: `Участвую активно (${activeParticipations.length})`, data: activeParticipations },
-    { id: 'past-participations', label: `Участвовал ранее (${pastParticipations.length})`, data: pastParticipations },
-  ]
+  const isOtherProfile = !isOwnProfile && userId
+  const tabs = isOtherProfile
+    ? [
+        { id: 'active-created', label: `Актуальные (${activeCreated.length})`, data: activeCreated },
+        { id: 'past-created', label: `Прошедшие (${pastCreated.length})`, data: pastCreated },
+      ]
+    : [
+        { id: 'active-created', label: `Мои активные (${activeCreated.length})`, data: activeCreated },
+        { id: 'past-created', label: `Мои прошедшие (${pastCreated.length})`, data: pastCreated },
+        { id: 'active-participations', label: `Участвую активно (${activeParticipations.length})`, data: activeParticipations },
+        { id: 'past-participations', label: `Участвовал ранее (${pastParticipations.length})`, data: pastParticipations },
+      ]
 
   const currentData = tabs.find(t => t.id === activeTab)?.data || []
 
   return (
     <div className="user-requests-section">
-      <h2>Мои заявки</h2>
+      <h2>{isOtherProfile ? 'Созданные заявки' : 'Мои заявки'}</h2>
       
       <div className="requests-tabs">
         {tabs.map(tab => (

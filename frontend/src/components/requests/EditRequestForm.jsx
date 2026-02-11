@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../../services/api'
+import { getMediaUrl } from '../../services/mediaUrl'
 import './EditRequestForm.css'
 
 function EditRequestForm({ request, onCancel, onSave }) {
@@ -201,7 +202,7 @@ function EditRequestForm({ request, onCancel, onSave }) {
             <div className="photos-preview">
               {photos.map((url, index) => (
                 <div key={index} className="photo-preview">
-                  <img src={url} alt={`Фото ${index + 1}`} />
+                  <img src={getMediaUrl(url)} alt={`Фото ${index + 1}`} />
                   <button
                     type="button"
                     onClick={() => handleRemovePhoto(index)}

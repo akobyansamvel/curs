@@ -756,11 +756,9 @@ def upload_photo(request):
         file_path = default_storage.save(f'requests/photos/{unique_filename}', ContentFile(photo.read()))
         file_url = default_storage.url(file_path)
         
-        # Возвращаем полный URL
+        # Относительный URL — делаем абсолютным, чтобы фото грузилось с любого фронта
         if file_url.startswith('/'):
-            base_url = getattr(settings, 'MEDIA_URL', '/media/')
-            if not file_url.startswith(base_url):
-                file_url = base_url.rstrip('/') + file_url
+            file_url = request.build_absolute_uri(file_url)
         
         return Response({'url': file_url}, status=status.HTTP_201_CREATED)
     except Exception as e:

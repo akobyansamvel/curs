@@ -1,3 +1,4 @@
+import { getMediaUrl } from '../../services/mediaUrl'
 import './RequestCard.css'
 
 function RequestCard({ request, hideDescription = false }) {
@@ -108,7 +109,7 @@ function RequestCard({ request, hideDescription = false }) {
     <div className="request-card">
       {request.photos && request.photos.length > 0 && (
         <div className="card-photo">
-          <img src={request.photos[0]} alt={request.title} />
+          <img src={getMediaUrl(request.photos[0])} alt={request.title} onError={(e) => { e.target.style.display = 'none'; }} />
         </div>
       )}
       <div className="card-header">

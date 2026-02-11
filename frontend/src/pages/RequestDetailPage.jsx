@@ -9,6 +9,7 @@ import CreateComplaint from '../components/complaints/CreateComplaint'
 import DeleteRequestModal from '../components/requests/DeleteRequestModal'
 import Breadcrumbs from '../components/common/Breadcrumbs'
 import MapPicker from '../components/map/MapPicker'
+import { getMediaUrl } from '../services/mediaUrl'
 import './RequestDetailPage.css'
 
 function RequestDetailPage() {
@@ -27,11 +28,18 @@ function RequestDetailPage() {
   const [creatingChat, setCreatingChat] = useState(false)
   const [showComplaint, setShowComplaint] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [photoIndex, setPhotoIndex] = useState(0)
   
   const isModerator = user?.is_moderator || user?.is_staff
+  const photos = request?.photos && request.photos.length > 0 ? request.photos : []
+  const hasMultiplePhotos = photos.length > 1
 
   useEffect(() => {
     loadRequest()
+  }, [id])
+
+  useEffect(() => {
+    setPhotoIndex(0)
   }, [id])
 
   const loadRequest = async () => {
@@ -274,65 +282,110 @@ function RequestDetailPage() {
         />
       )}
 
-      <div className="request-info">
-        <div className="info-item">
-          <strong>Активность:</strong> {request.activity?.name}
-        </div>
-        <div className="info-item">
-          <strong>Формат:</strong> {request.format === 'partner' ? 'Партнёр' : 
-                                    request.format === 'company' ? 'Компания' : 'Группа'}
-        </div>
-        <div className="info-item">
-          <strong>Дата и время:</strong> {new Date(request.date).toLocaleDateString('ru-RU')} в {request.time}
-        </div>
-        <div className="info-item">
-          <strong>Место:</strong> {request.address || request.location_name}
-        </div>
-        <div className="info-item">
-          <strong>Уровень:</strong> {
-            request.level === 'beginner' ? 'Начинающий' :
-            request.level === 'intermediate' ? 'Средний' :
-            request.level === 'advanced' ? 'Продвинутый' :
-            request.level === 'professional' ? 'Профессионал' : 'Любой'
-          }
-        </div>
-        <div className="info-item">
-          <strong>Участников:</strong> {request.current_participants}/{request.max_participants}
-        </div>
-      </div>
-
-      {request.photos && request.photos.length > 0 && (
-        <div className="request-photos">
-          <h2>Фото</h2>
-          <div className="photos-gallery">
-            {request.photos.map((url, index) => (
-              <img key={index} src={url} alt={`Фото ${index + 1}`} className="request-photo" />
-            ))}
+      <div className="request-main-row">
+        <div className="request-photos-col">
+          {photos.length > 0 ? (
+            <div className="request-photo-carousel">
+              <div className="carousel-inner">
+                <img
+                  src={getMediaUrl(photos[photoIndex])}
+                  alt={`Фото ${photoIndex + 1}`}
+                  className="request-photo"
+                />
+              </div>
+              {hasMultiplePhotos && (
+                <>
+                  <button
+                    type="button"
+                    className="carousel-btn carousel-prev"
+                    onClick={() => setPhotoIndex((i) => (i === 0 ? photos.length - 1 : i - 1))}
+                    aria-label="Предыдущее фото"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    className="carousel-btn carousel-next"
+                    onClick={() => setPhotoIndex((i) => (i === photos.length - 1 ? 0 : i + 1))}
+                    aria-label="Следующее фото"
+                  >
+                    ›
+                  </button>
+                  <div className="carousel-dots">
+                    {photos.map((_, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        className={`carousel-dot ${i === photoIndex ? 'active' : ''}`}
+                        onClick={() => setPhotoIndex(i)}
+                        aria-label={`Фото ${i + 1}`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="request-photo-placeholder">
+              <span>Нет фото</span>
+            </div>
+          )}
+          <div className="request-creator">
+            <h3 className="request-creator-title">Создатель</h3>
+            {request.creator ? (
+              <Link to={`/profile/${request.creator.id}/`} className="creator-link">
+                {request.creator.username}
+              </Link>
+            ) : (
+              <span>Не указан</span>
+            )}
           </div>
         </div>
-      )}
 
-      <div className="request-description">
-        <h2>Описание</h2>
-        <p>{request.description}</p>
-      </div>
+        <div className="request-data-col">
+          <div className="request-data-block">
+            <div className="request-info">
+              <div className="info-item">
+                <strong>Активность:</strong> {request.activity?.name}
+              </div>
+              <div className="info-item">
+                <strong>Формат:</strong> {request.format === 'partner' ? 'Партнёр' : 
+                                          request.format === 'company' ? 'Компания' : 'Группа'}
+              </div>
+              <div className="info-item">
+                <strong>Дата и время:</strong> {new Date(request.date).toLocaleDateString('ru-RU')} в {request.time}
+              </div>
+              <div className="info-item">
+                <strong>Место:</strong> {request.address || request.location_name}
+              </div>
+              <div className="info-item">
+                <strong>Уровень:</strong> {
+                  request.level === 'beginner' ? 'Начинающий' :
+                  request.level === 'intermediate' ? 'Средний' :
+                  request.level === 'advanced' ? 'Продвинутый' :
+                  request.level === 'professional' ? 'Профессионал' : 'Любой'
+                }
+              </div>
+              <div className="info-item">
+                <strong>Участников:</strong> {request.current_participants}/{request.max_participants}
+              </div>
+            </div>
 
-      {request.requirements && (
-        <div className="request-requirements">
-          <h2>Требования</h2>
-          <p>{request.requirements}</p>
+            {request.requirements && (
+              <div className="request-requirements-inline">
+                <h3 className="requirements-title">Требования</h3>
+                <p className="requirements-text">{request.requirements}</p>
+              </div>
+            )}
+
+            <hr className="request-block-divider" />
+
+            <div className="request-description-inline">
+              <h3 className="description-title">Описание</h3>
+              <p className="description-text">{request.description || '—'}</p>
+            </div>
+          </div>
         </div>
-      )}
-
-      <div className="request-creator">
-        <h2>Создатель</h2>
-        {request.creator ? (
-          <Link to={`/profile/${request.creator.id}/`} className="creator-link">
-            {request.creator.username}
-          </Link>
-        ) : (
-          <span>Не указан</span>
-        )}
       </div>
 
       {!isCreator && user && !participating && (

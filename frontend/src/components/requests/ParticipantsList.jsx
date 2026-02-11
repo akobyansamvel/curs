@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
+import { getMediaUrl } from '../../services/mediaUrl'
 import './ParticipantsList.css'
 
 function ParticipantsList({ requestId, onUpdate }) {
@@ -87,9 +88,9 @@ function ParticipantsList({ requestId, onUpdate }) {
               <div className="participant-header">
                 <div className="participant-avatar">
                   {participation.user_profile?.photo ? (
-                    <img 
-                      src={participation.user_profile.photo} 
-                      alt={participation.user?.username || 'Пользователь'} 
+                    <img
+                      src={getMediaUrl(participation.user_profile.photo)}
+                      alt={participation.user?.username || 'Пользователь'}
                     />
                   ) : (
                     <div className="avatar-placeholder">
