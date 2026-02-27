@@ -81,6 +81,7 @@ class Request(models.Model):
     latitude = models.DecimalField(max_digits=10, decimal_places=6, verbose_name='Широта')
     longitude = models.DecimalField(max_digits=10, decimal_places=6, verbose_name='Долгота')
     address = models.TextField(blank=True, verbose_name='Адрес')
+    metro_stations = models.JSONField(default=list, blank=True, verbose_name='Станции метро')
     
     # Участники
     level = models.CharField(max_length=50, choices=[

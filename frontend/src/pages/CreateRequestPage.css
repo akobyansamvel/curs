@@ -57,6 +57,90 @@
   accent-color: #667eea;
 }
 
+.metro-select {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 300px;
+  padding: 0.75rem 0.75rem 0.9rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow-y: auto;
+}
+
+.metro-search-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.metro-line-group {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 0.4rem 0 0.4rem;
+}
+
+.metro-line-group:last-child {
+  border-bottom: none;
+  padding-bottom: 0.1rem;
+}
+
+.metro-line-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  background: #f9fafb;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.metro-line-title:hover {
+  border-color: #e5e7eb;
+  background: #f3f4f6;
+}
+
+.metro-line-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.metro-line-chevron {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.metro-line-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.metro-stations-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.metro-station-option {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.metro-station-option input[type="checkbox"] {
+  width: 0.9rem;
+  height: 0.9rem;
+  accent-color: #667eea;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

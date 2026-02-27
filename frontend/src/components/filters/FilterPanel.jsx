@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../../services/api'
+import { METRO_LINES, METRO_STATIONS_BY_LINE } from '../../constants/metro'
 import './FilterPanel.css'
 
 function FilterPanel({ filters, onChange }) {
@@ -28,6 +29,13 @@ function FilterPanel({ filters, onChange }) {
       ...filters,
       [name]: value
     })
+  }
+
+  const toggleMetroStation = (stationId) => {
+    const current = (filters.metro_stations || '').split(',').map((s) => s.trim()).filter(Boolean)
+    const exists = current.includes(stationId)
+    const next = exists ? current.filter((id) => id !== stationId) : [...current, stationId]
+    handleChange('metro_stations', next.join(','))
   }
 
   return (
@@ -70,6 +78,51 @@ function FilterPanel({ filters, onChange }) {
         <option value="advanced">Продвинутый</option>
         <option value="professional">Профессионал</option>
       </select>
+
+      <select
+        value={filters.metro_line}
+        onChange={(e) => handleChange('metro_line', e.target.value)}
+      >
+        <option value="">Все линии метро</option>
+        {METRO_LINES.map((line) => (
+          <option key={line.id} value={line.id}>
+            {line.name}
+          </option>
+        ))}
+      </select>
+
+      <div className="metro-filter">
+        {(filters.metro_line
+          ? METRO_LINES.filter((l) => l.id === filters.metro_line)
+          : METRO_LINES
+        ).map((line) => (
+          <div key={line.id} className="metro-line-group">
+            <div className="metro-line-title">
+              <span className="metro-line-color-dot" style={{ backgroundColor: line.color }} />
+              {line.name}
+            </div>
+            <div className="metro-stations-list">
+              {METRO_STATIONS_BY_LINE[line.id].map((station) => {
+                const selected = (filters.metro_stations || '')
+                  .split(',')
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+                  .includes(station.id)
+                return (
+                  <label key={station.id} className="metro-station-option">
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={() => toggleMetroStation(station.id)}
+                    />
+                    <span>{station.name}</span>
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

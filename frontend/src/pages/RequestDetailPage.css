@@ -230,6 +230,10 @@
   color: #555;
 }
 
+.info-item .metro-chips {
+  margin-top: 0.15rem;
+}
+
 .request-photos-col .request-creator {
   margin-top: auto;
   padding: 0.75rem 1rem;

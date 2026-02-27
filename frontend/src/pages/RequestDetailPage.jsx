@@ -8,7 +8,6 @@ import EditRequestForm from '../components/requests/EditRequestForm'
 import CreateComplaint from '../components/complaints/CreateComplaint'
 import DeleteRequestModal from '../components/requests/DeleteRequestModal'
 import Breadcrumbs from '../components/common/Breadcrumbs'
-import MapPicker from '../components/map/MapPicker'
 import { getMediaUrl } from '../services/mediaUrl'
 import './RequestDetailPage.css'
 
@@ -164,23 +163,13 @@ function RequestDetailPage() {
 
   const handleChangeLocation = async () => {
     if (!newLocation.location_name) {
-      alert('Укажите место')
+      alert('Укажите адрес')
       return
     }
 
     try {
-      const roundCoordinate = (coord) => {
-        if (coord === null || coord === undefined || coord === '') return null
-        const num = typeof coord === 'string' ? parseFloat(coord) : coord
-        if (isNaN(num)) return null
-        return parseFloat(num.toFixed(6))
-      }
-
       await api.patch(`/requests/${id}/edit/`, {
         location_name: newLocation.location_name,
-        latitude: roundCoordinate(newLocation.latitude),
-        longitude: roundCoordinate(newLocation.longitude),
-        address: newLocation.address || ''
       })
       loadRequest()
       setShowChangeLocationModal(false)
@@ -356,7 +345,12 @@ function RequestDetailPage() {
                 <strong>Дата и время:</strong> {new Date(request.date).toLocaleDateString('ru-RU')} в {request.time}
               </div>
               <div className="info-item">
-                <strong>Место:</strong> {request.address || request.location_name}
+                <strong>Метро:</strong>{' '}
+                {Array.isArray(request.metro_stations) && request.metro_stations.length > 0
+                  ? `м. ${request.metro_stations
+                      .map((s) => (typeof s === 'string' ? s : s.name || s.id))
+                      .join(', ')}`
+                  : (request.address || request.location_name || 'Не указано')}
               </div>
               <div className="info-item">
                 <strong>Уровень:</strong> {
@@ -491,34 +485,17 @@ function RequestDetailPage() {
           {showChangeLocationModal && (
             <div className="modal-overlay" onClick={() => setShowChangeLocationModal(false)}>
               <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                <h3>Поменять место</h3>
+                <h3>Поменять адрес</h3>
                 <div className="form-group">
-                  <label>Место:</label>
+                  <label>Адрес:</label>
                   <input
                     id="change_location_input"
                     type="text"
                     value={newLocation.location_name}
                     onChange={(e) => setNewLocation({ ...newLocation, location_name: e.target.value })}
-                    placeholder="Начните вводить адрес или место"
+                    placeholder="Укажите адрес (улица, дом, ориентир)"
                     required
                   />
-                  <MapPicker
-                    onSelect={(location) => {
-                      if (location && location.latitude != null && location.longitude != null) {
-                        setNewLocation({
-                          location_name: location.name || location.address || '',
-                          latitude: location.latitude,
-                          longitude: location.longitude,
-                          address: location.address || ''
-                        })
-                      }
-                    }}
-                    address={newLocation.location_name}
-                    addressInputId="change_location_input"
-                  />
-                  {newLocation.address && (
-                    <p className="address">{newLocation.address}</p>
-                  )}
                 </div>
                 <div className="modal-actions">
                   <button onClick={() => setShowChangeLocationModal(false)} className="btn-cancel">

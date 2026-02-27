@@ -42,7 +42,7 @@ class RequestSerializer(serializers.ModelSerializer):
         model = Request
         fields = ['id', 'creator', 'request_type', 'activity', 'activity_id',
                  'format', 'date', 'time', 'date_end', 'time_end',
-                 'location_name', 'latitude', 'longitude', 'address',
+                 'location_name', 'latitude', 'longitude', 'address', 'metro_stations',
                  'level', 'max_participants', 'current_participants', 'participations_count',
                  'title', 'description', 'requirements', 'photos',
                  'visibility', 'status', 'is_favorite', 'is_participating', 'created_at', 'updated_at']

@@ -105,6 +105,34 @@
   gap: 0.5rem;
 }
 
+.metro-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.metro-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: #f3f4f6;
+  font-size: 0.8rem;
+  color: #374151;
+}
+
+.metro-chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.metro-chip-more {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
 .request-date {
   color: #666;
   margin: 0;

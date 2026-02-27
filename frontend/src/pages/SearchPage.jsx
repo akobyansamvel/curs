@@ -16,7 +16,9 @@ function SearchPage() {
     request_type: searchParams.get('request_type') || '',
     level: searchParams.get('level') || '',
     format: searchParams.get('format') || '',
-    quick_tag: searchParams.get('quick_tag') || ''
+    quick_tag: searchParams.get('quick_tag') || '',
+    metro_line: searchParams.get('metro_line') || '',
+    metro_stations: searchParams.get('metro_stations') || ''
   })
 
   useEffect(() => {

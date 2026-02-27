@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
-import MapPicker from '../components/map/MapPicker'
 import Breadcrumbs from '../components/common/Breadcrumbs'
 import { getMediaUrl } from '../services/mediaUrl'
+import { METRO_LINES, METRO_STATIONS, METRO_STATIONS_BY_LINE } from '../constants/metro'
 import './CreateRequestPage.css'
 
 function CreateRequestPage() {
@@ -16,9 +16,7 @@ function CreateRequestPage() {
     date_end: '',
     time_end: '',
     location_name: '',
-    latitude: '',
-    longitude: '',
-    address: '',
+    metro_stations: [],
     level: 'any',
     max_participants: 2,
     title: '',
@@ -32,6 +30,8 @@ function CreateRequestPage() {
   const [error, setError] = useState('')
   const [photos, setPhotos] = useState([])
   const [uploadingPhotos, setUploadingPhotos] = useState(false)
+  const [metroSearch, setMetroSearch] = useState('')
+  const [expandedLines, setExpandedLines] = useState([])
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -58,27 +58,36 @@ function CreateRequestPage() {
       [name]: type === 'checkbox' ? checked : value
     })
   }
-
-  const handleMapSelect = (location) => {
-    if (!location || (location.latitude == null && location.longitude == null)) {
-      setFormData({
-        ...formData,
-        location_name: '',
-        latitude: '',
-        longitude: '',
-        address: ''
-      })
-      return
-    }
-
-    setFormData({
-      ...formData,
-      location_name: location.name,
-      latitude: location.latitude,
-      longitude: location.longitude,
-      address: location.address
+  
+  const toggleMetroStation = (stationId) => {
+    setFormData((prev) => {
+      const exists = prev.metro_stations.includes(stationId)
+      return {
+        ...prev,
+        metro_stations: exists
+          ? prev.metro_stations.filter((id) => id !== stationId)
+          : [...prev.metro_stations, stationId]
+      }
     })
   }
+
+  const toggleLineExpanded = (lineId) => {
+    setExpandedLines((prev) =>
+      prev.includes(lineId) ? prev.filter((id) => id !== lineId) : [...prev, lineId]
+    )
+  }
+
+  useEffect(() => {
+    const search = metroSearch.trim().toLowerCase()
+    if (!search) {
+      return
+    }
+    const matchingLines = METRO_LINES.filter((line) => {
+      const stations = METRO_STATIONS_BY_LINE[line.id] || []
+      return stations.some((s) => s.name.toLowerCase().includes(search))
+    }).map((l) => l.id)
+    setExpandedLines(matchingLines)
+  }, [metroSearch])
 
   const handlePhotoUpload = async (e) => {
     const files = Array.from(e.target.files)
@@ -123,18 +132,19 @@ function CreateRequestPage() {
     setError('')
 
     try {
-      const roundCoordinate = (coord) => {
-        if (coord === null || coord === undefined || coord === '') return null
-        const num = typeof coord === 'string' ? parseFloat(coord) : coord
-        if (isNaN(num)) return null
-        return parseFloat(num.toFixed(6))
-      }
+      const metroStationsPayload = formData.metro_stations.map((id) => {
+        const station = METRO_STATIONS.find((s) => s.id === id)
+        if (station) {
+          const { id: sid, name, line } = station
+          return { id: sid, name, line }
+        }
+        return { id }
+      })
       
       const submitData = {
         ...formData,
         photos: photos,
-        latitude: roundCoordinate(formData.latitude),
-        longitude: roundCoordinate(formData.longitude)
+        metro_stations: metroStationsPayload,
       }
       await api.post('/requests/create/', submitData)
       navigate('/requests/my')
@@ -209,24 +219,73 @@ function CreateRequestPage() {
         </div>
 
         <div className="form-group">
-          <label>Место</label>
+          <label>Адрес</label>
           <input
             id="location_name_input"
             type="text"
             name="location_name"
             value={formData.location_name}
             onChange={handleChange}
-            placeholder="Начните вводить адрес или место"
+            placeholder="Укажите адрес (улица, дом, ориентир)"
             required
           />
-          <MapPicker
-            onSelect={handleMapSelect}
-            address={formData.location_name}
-            addressInputId="location_name_input"
-          />
-          {formData.address && (
-            <p className="address">{formData.address}</p>
-          )}
+        </div>
+
+        <div className="form-group">
+          <label>Метро (станция или станции)</label>
+          <div className="metro-select">
+            <input
+              type="text"
+              className="metro-search-input"
+              placeholder="Найти станцию"
+              value={metroSearch}
+              onChange={(e) => setMetroSearch(e.target.value)}
+            />
+            {METRO_LINES.map((line) => {
+              const stationsAll = METRO_STATIONS_BY_LINE[line.id] || []
+              const search = metroSearch.trim().toLowerCase()
+              const stations = search
+                ? stationsAll.filter((s) => s.name.toLowerCase().includes(search))
+                : stationsAll
+
+              if (!stations.length) return null
+
+              const expanded = expandedLines.includes(line.id)
+
+              return (
+                <div key={line.id} className="metro-line-group">
+                  <button
+                    type="button"
+                    className="metro-line-title"
+                    onClick={() => toggleLineExpanded(line.id)}
+                  >
+                    <span className="metro-line-left">
+                      <span
+                        className="metro-line-color-dot"
+                        style={{ backgroundColor: line.color }}
+                      />
+                      <span>{line.name}</span>
+                    </span>
+                    <span className="metro-line-chevron">{expanded ? '▾' : '▸'}</span>
+                  </button>
+                  {expanded && (
+                    <div className="metro-stations-list">
+                      {stations.map((station) => (
+                        <label key={station.id} className="metro-station-option">
+                          <input
+                            type="checkbox"
+                            checked={formData.metro_stations.includes(station.id)}
+                            onChange={() => toggleMetroStation(station.id)}
+                          />
+                          <span>{station.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
 
         <div className="form-group">

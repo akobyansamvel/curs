@@ -18,6 +18,62 @@
   border-radius: 4px;
 }
 
+.metro-filter {
+  display: flex;
+  flex: 1 1 100%;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 220px;
+  padding: 0.75rem 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow-y: auto;
+}
+
+.metro-line-group {
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 0.4rem;
+}
+
+.metro-line-group:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.metro-line-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.metro-line-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.metro-stations-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.metro-station-option {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.metro-station-option input[type="checkbox"] {
+  width: 0.9rem;
+  height: 0.9rem;
+  accent-color: #667eea;
+}
+
 @media (max-width: 768px) {
   .filter-panel {
     flex-direction: column;

@@ -77,6 +77,8 @@ def request_list(request):
     level = request.query_params.get('level')
     format_type = request.query_params.get('format')
     creator_id = request.query_params.get('creator_id')
+    metro_line = request.query_params.get('metro_line')
+    metro_stations_param = request.query_params.get('metro_stations')
     
     # Начинаем с базового queryset
     requests = Request.objects.all()
@@ -189,6 +191,48 @@ def request_list(request):
         
         if needs_save:
             req.save(update_fields=['current_participants', 'status'])
+    
+    # Фильтрация по метро (линия и/или станции)
+    if metro_line or metro_stations_param:
+        selected_station_ids = []
+        if metro_stations_param:
+            # ожидаем строку вида "id1,id2,id3"
+            selected_station_ids = [
+                s.strip() for s in str(metro_stations_param).split(',') if s.strip()
+            ]
+        
+        def matches_metro(req):
+            stations = getattr(req, 'metro_stations', None) or []
+            
+            # приведение к единому формату: каждый элемент либо dict c ключами id/line, либо строка-id
+            def station_has_id(station):
+                if isinstance(station, dict):
+                    sid = station.get('id') or station.get('slug') or station.get('code')
+                    return sid in selected_station_ids if sid else False
+                return station in selected_station_ids
+            
+            def station_on_line(station):
+                if not metro_line:
+                    return True
+                if isinstance(station, dict):
+                    line = station.get('line') or station.get('line_id')
+                    return line == metro_line
+                # если станция передана строкой без информации о линии, не сможем проверить
+                return False
+            
+            if selected_station_ids:
+                # Должна быть хотя бы одна выбранная станция
+                if not any(station_has_id(s) for s in stations):
+                    return False
+            
+            if metro_line:
+                # Должна быть хотя бы одна станция выбранной линии
+                if not any(station_on_line(s) for s in stations):
+                    return False
+            
+            return True
+        
+        requests_list = [req for req in requests_list if matches_metro(req)]
     
     serializer = RequestSerializer(requests_list, many=True, context={'request': request})
     return Response(serializer.data)

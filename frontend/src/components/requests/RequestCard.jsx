@@ -1,5 +1,11 @@
 import { getMediaUrl } from '../../services/mediaUrl'
+import { METRO_LINES } from '../../constants/metro'
 import './RequestCard.css'
+
+const METRO_LINE_COLORS = METRO_LINES.reduce((acc, line) => {
+  acc[line.id] = line.color
+  return acc
+}, {})
 
 function RequestCard({ request, hideDescription = false }) {
   const formatAddress = (address) => {
@@ -56,6 +62,37 @@ function RequestCard({ request, hideDescription = false }) {
       .replace(/посёлок городского типа/gi, 'Пгт')
       .replace(/поселок городского типа/gi, 'Пгт')
       .replace(/улица/gi, 'ул.')
+  }
+
+  const renderMetro = () => {
+    const stations = request.metro_stations
+    if (Array.isArray(stations) && stations.length > 0) {
+      const maxShown = 2
+      const shown = stations.slice(0, maxShown)
+      const extra = stations.length - maxShown
+      return (
+        <div className="metro-chips">
+          {shown.map((s, idx) => {
+            const isString = typeof s === 'string'
+            const name = isString ? s : (s.name || s.id)
+            const lineId = isString ? null : (s.line || s.line_id || null)
+            const color = (lineId && METRO_LINE_COLORS[lineId]) || '#667eea'
+            return (
+              <span key={idx} className="metro-chip">
+                <span className="metro-chip-dot" style={{ backgroundColor: color }} />
+                <span className="metro-chip-name">{name}</span>
+              </span>
+            )
+          })}
+          {extra > 0 && (
+            <span className="metro-chip metro-chip-more">
+              +{extra}
+            </span>
+          )}
+        </div>
+      )
+    }
+    return formatAddress(request.location_name || request.address)
   }
 
   const formatDate = (dateString) => {
@@ -119,7 +156,7 @@ function RequestCard({ request, hideDescription = false }) {
       <p className="request-activity">{request.activity?.name || 'Активность не указана'}</p>
       <div className="request-info">
         <p className="request-location">
-          📍 {formatAddress(request.location_name || request.address)}
+          📍 {renderMetro()}
         </p>
         <p className="request-date">
           📅 {formatDate(request.date)} в {request.time}
