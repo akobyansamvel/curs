@@ -1,20 +1,27 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../../services/api'
 import { getMediaUrl } from '../../services/mediaUrl'
+import { METRO_LINES, METRO_STATIONS } from '../../constants/metro'
 import './ProfileEdit.css'
+
+const LINE_COLOR = Object.fromEntries(METRO_LINES.map((l) => [l.id, l.color]))
 
 function ProfileEdit({ profile, onSave, onCancel }) {
   const [formData, setFormData] = useState({
     city: profile.city || '',
     bio: profile.bio || '',
     photo: null,
-    available_schedule: profile.available_schedule || {}
+    available_schedule: profile.available_schedule || {},
+    home_metro_station_id: profile.home_metro_station_id || ''
   })
   const [loading, setLoading] = useState(false)
   const [photoPreview, setPhotoPreview] = useState(profile.photo || null)
   const [deletePhoto, setDeletePhoto] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef(null)
+  const metroComboRef = useRef(null)
+  const [metroDraft, setMetroDraft] = useState('')
+  const [metroListOpen, setMetroListOpen] = useState(false)
   const [scheduleDays, setScheduleDays] = useState([
     'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'
   ])
@@ -28,9 +35,61 @@ function ProfileEdit({ profile, onSave, onCancel }) {
         newSchedule[day] = { enabled: false, start: '09:00', end: '18:00' }
       }
     })
-    setFormData(prev => ({ ...prev, available_schedule: newSchedule }))
+    setFormData(prev => ({
+      ...prev,
+      available_schedule: newSchedule,
+      home_metro_station_id: profile.home_metro_station_id || ''
+    }))
+    const hs = profile.home_metro_station_id
+    if (hs) {
+      const st = METRO_STATIONS.find((s) => s.id === hs)
+      setMetroDraft(st ? st.name : hs)
+    } else {
+      setMetroDraft('')
+    }
     setPhotoPreview(profile.photo || null)
   }, [profile])
+
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (metroComboRef.current && !metroComboRef.current.contains(e.target)) {
+        setMetroListOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [])
+
+  const metroSuggestions = (() => {
+    const q = metroDraft.trim().toLowerCase()
+    if (q.length < 1) return []
+    return METRO_STATIONS.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q)
+    ).slice(0, 40)
+  })()
+
+  const handleMetroInputChange = (e) => {
+    const v = e.target.value
+    setMetroDraft(v)
+    setMetroListOpen(true)
+    const selected = METRO_STATIONS.find((s) => s.id === formData.home_metro_station_id)
+    if (selected && v !== selected.name) {
+      setFormData((prev) => ({ ...prev, home_metro_station_id: '' }))
+    }
+  }
+
+  const pickMetroStation = (station) => {
+    setFormData((prev) => ({ ...prev, home_metro_station_id: station.id }))
+    setMetroDraft(station.name)
+    setMetroListOpen(false)
+  }
+
+  const clearMetroStation = () => {
+    setFormData((prev) => ({ ...prev, home_metro_station_id: '' }))
+    setMetroDraft('')
+    setMetroListOpen(false)
+  }
 
   const handleChange = (e) => {
     const { name, value, files } = e.target
@@ -119,6 +178,7 @@ function ProfileEdit({ profile, onSave, onCancel }) {
       const formDataToSend = new FormData()
       formDataToSend.append('city', formData.city)
       formDataToSend.append('bio', formData.bio)
+      formDataToSend.append('home_metro_station_id', formData.home_metro_station_id || '')
       formDataToSend.append('available_schedule', JSON.stringify(formData.available_schedule))
       if (formData.photo) {
         formDataToSend.append('photo', formData.photo)
@@ -165,6 +225,58 @@ function ProfileEdit({ profile, onSave, onCancel }) {
           value={formData.city}
           onChange={handleChange}
         />
+      </div>
+
+      <div className="form-group metro-autocomplete-group" ref={metroComboRef}>
+        <label htmlFor="home-metro-input">Моя станция метро (для поиска «Рядом»)</label>
+        <div className="metro-autocomplete-wrap">
+          <input
+            id="home-metro-input"
+            type="text"
+            autoComplete="off"
+            placeholder="Начните вводить название станции…"
+            value={metroDraft}
+            onChange={handleMetroInputChange}
+            onFocus={() => setMetroListOpen(true)}
+          />
+          {(metroDraft || formData.home_metro_station_id) && (
+            <button
+              type="button"
+              className="metro-autocomplete-clear"
+              onClick={clearMetroStation}
+              aria-label="Очистить станцию"
+            >
+              ×
+            </button>
+          )}
+        </div>
+        {metroListOpen && metroSuggestions.length > 0 && (
+          <ul className="metro-autocomplete-list" role="listbox">
+            {metroSuggestions.map((s) => (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  className="metro-autocomplete-option"
+                  style={{ borderLeft: `3px solid ${LINE_COLOR[s.line] || '#888'}` }}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => pickMetroStation(s)}
+                >
+                  <span
+                    className="metro-line-dot"
+                    style={{ backgroundColor: LINE_COLOR[s.line] || '#888' }}
+                    title={s.line}
+                  />
+                  <span className="metro-option-name">{s.name}</span>
+                  <span className="metro-option-line">{s.line}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {metroListOpen && metroDraft.trim().length >= 1 && metroSuggestions.length === 0 && (
+          <p className="metro-autocomplete-empty">Нет совпадений — попробуйте другой запрос</p>
+        )}
+        <p className="field-hint">От этой станции считаются ±3 станции по линии в фильтре «Рядом», если в поиске станции не выбраны. Выберите станцию из списка.</p>
       </div>
 
       <div className="form-group">

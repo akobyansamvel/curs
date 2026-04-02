@@ -79,7 +79,20 @@ def request_list(request):
     creator_id = request.query_params.get('creator_id')
     metro_line = request.query_params.get('metro_line')
     metro_stations_param = request.query_params.get('metro_stations')
-    
+    quick_tag_param = request.query_params.get('quick_tag')
+    if quick_tag_param == 'nearby' and not metro_stations_param and request.user.is_authenticated:
+        try:
+            home_metro = (request.user.profile.home_metro_station_id or '').strip()
+        except Exception:
+            home_metro = ''
+        if home_metro:
+            metro_stations_param = home_metro
+    if quick_tag_param == 'nearby' and metro_stations_param:
+        from .metro_nearby import expand_metro_station_ids
+        raw_ids = [s.strip() for s in str(metro_stations_param).split(',') if s.strip()]
+        if raw_ids:
+            metro_stations_param = ','.join(expand_metro_station_ids(raw_ids, radius=3))
+
     # Начинаем с базового queryset
     requests = Request.objects.all()
     
@@ -152,18 +165,14 @@ def request_list(request):
         requests = requests.order_by('-created_at')
     
     # Быстрые теги
-    quick_tag = request.query_params.get('quick_tag')
+    quick_tag = quick_tag_param or request.query_params.get('quick_tag')
     if quick_tag == 'today':
         today = timezone.now().date()
         requests = requests.filter(date=today)
     elif quick_tag == 'weekend':
+        from .metro_nearby import nearest_weekend_sat_sun
         today = timezone.now().date()
-        # Находим ближайшие выходные
-        days_until_saturday = (5 - today.weekday()) % 7
-        if days_until_saturday == 0:
-            days_until_saturday = 7
-        saturday = today + timedelta(days=days_until_saturday)
-        sunday = saturday + timedelta(days=1)
+        saturday, sunday = nearest_weekend_sat_sun(today)
         requests = requests.filter(date__in=[saturday, sunday])
     elif quick_tag == 'nearby':
         # Фильтр по геолокации (можно добавить позже)
@@ -661,7 +670,15 @@ def my_participations(request):
 def search_requests(request):
     """Поиск заявок"""
     query = request.query_params.get('q', '')
-    results = search_requests_func(query, request.query_params)
+    qp = request.query_params.copy()
+    if request.user.is_authenticated:
+        try:
+            home_metro = (request.user.profile.home_metro_station_id or '').strip()
+        except Exception:
+            home_metro = ''
+        if qp.get('quick_tag') == 'nearby' and not qp.get('metro_stations') and home_metro:
+            qp['metro_stations'] = home_metro
+    results = search_requests_func(query, qp)
     serializer = RequestSerializer(results, many=True, context={'request': request})
     return Response(serializer.data)
 

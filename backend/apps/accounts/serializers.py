@@ -21,7 +21,8 @@ class ProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Profile
-        fields = ['id', 'user', 'photo', 'city', 'rating', 'bio', 
+        fields = ['id', 'user', 'photo', 'city', 'rating', 'bio',
+                 'home_metro_station_id',
                  'available_schedule', 'created_at', 'updated_at']
         read_only_fields = ['id', 'rating', 'created_at', 'updated_at']
     

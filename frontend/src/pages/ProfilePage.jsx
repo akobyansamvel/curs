@@ -12,7 +12,14 @@ import BanUserModal from '../components/moderation/BanUserModal'
 import CreateReviewFromProfile from '../components/reviews/CreateReviewFromProfile'
 import Breadcrumbs from '../components/common/Breadcrumbs'
 import { getMediaUrl } from '../services/mediaUrl'
+import { METRO_STATIONS } from '../constants/metro'
 import './ProfilePage.css'
+
+function metroStationLabel(stationId) {
+  if (!stationId) return ''
+  const s = METRO_STATIONS.find((m) => m.id === stationId)
+  return s ? s.name : stationId
+}
 
 function ProfilePage() {
   const { userId } = useParams()
@@ -129,6 +136,9 @@ function ProfilePage() {
         <div className="profile-info">
           <h1>{profileUser?.first_name || profileUser?.username || 'Пользователь'}</h1>
           <p className="profile-city">{profile.city || 'Город не указан'}</p>
+          {profile.home_metro_station_id && (
+            <p className="profile-metro">Станция метро: {metroStationLabel(profile.home_metro_station_id)}</p>
+          )}
           <p className="profile-rating">Рейтинг: {profile.rating.toFixed(2)}/5.00</p>
           {profileUser?.telegram_verified && (
             <span className="verified-badge">✓ Telegram подтверждён</span>

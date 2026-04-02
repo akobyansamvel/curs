@@ -25,6 +25,12 @@ class Profile(models.Model):
                                  validators=[MinValueValidator(0), MaxValueValidator(5)],
                                  verbose_name='Рейтинг')
     bio = models.TextField(blank=True, verbose_name='О себе')
+    home_metro_station_id = models.CharField(
+        max_length=120,
+        blank=True,
+        verbose_name='Станция метро (дом)',
+        help_text='Идентификатор станции из справочника; для фильтра «Рядом» на поиске',
+    )
     available_schedule = models.JSONField(default=dict, blank=True, 
                                          help_text='Расписание доступного времени', verbose_name='Расписание')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создан')
