@@ -135,12 +135,15 @@ def ban_list(request):
             status=status.HTTP_403_FORBIDDEN
         )
     
+    # Автоматически деактивируем истёкшие временные баны
+    Ban.objects.filter(is_active=True, ends_at__lte=timezone.now()).update(is_active=False)
+
     bans = Ban.objects.all().order_by('-created_at')
-    is_active = request.query_params.get('is_active')
-    if is_active is not None:
-        is_active = is_active.lower() == 'true'
-        bans = bans.filter(is_active=is_active)
-    
+    is_active_param = request.query_params.get('is_active')
+    if is_active_param is not None:
+        is_active_param = is_active_param.lower() == 'true'
+        bans = bans.filter(is_active=is_active_param)
+
     serializer = BanSerializer(bans, many=True)
     return Response(serializer.data)
 
@@ -154,21 +157,55 @@ def ban_create(request):
             {'error': 'Недостаточно прав'},
             status=status.HTTP_403_FORBIDDEN
         )
-    
-    data = request.data.copy()
-    data['moderator'] = request.user.id
-    
-    serializer = BanSerializer(data=data)
-    if serializer.is_valid():
-        ban = serializer.save(moderator=request.user)
-        
-        # Обновляем статус активности блокировки
-        if ban.ends_at and ban.ends_at < timezone.now():
-            ban.is_active = False
-            ban.save()
-        
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    user_id = request.data.get('user_id')
+    if not user_id:
+        return Response(
+            {'error': 'Не указан пользователь (user_id)'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        target_user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return Response(
+            {'error': 'Пользователь не найден'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    reason = request.data.get('reason', '').strip()
+    if not reason:
+        return Response(
+            {'error': 'Укажите причину блокировки'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    ban_type = request.data.get('ban_type', 'temporary')
+
+    ends_at = None
+    ends_at_raw = request.data.get('ends_at') or None
+    if ends_at_raw:
+        from django.utils.dateparse import parse_datetime
+        ends_at = parse_datetime(ends_at_raw)
+        if ends_at is None:
+            return Response(
+                {'error': 'Неверный формат даты окончания'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if timezone.is_naive(ends_at):
+            ends_at = timezone.make_aware(ends_at)
+
+    ban = Ban.objects.create(
+        user=target_user,
+        ban_type=ban_type,
+        reason=reason,
+        moderator=request.user,
+        starts_at=timezone.now(),
+        ends_at=ends_at,
+    )
+
+    serializer = BanSerializer(ban)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])

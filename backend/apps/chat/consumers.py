@@ -110,30 +110,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
     
     @database_sync_to_async
     def save_message(self, content):
-        """Сохранение сообщения в БД"""
-        from apps.notifications.models import Notification
-        
+        """Сохранение сообщения в БД (без уведомлений — они создаются в HTTP endpoint)"""
         room = ChatRoom.objects.get(id=self.room_id)
         sender = self.scope['user']
-        
+
         message = Message.objects.create(
             room=room,
             sender=sender,
             content=content
         )
-        
-        # Создаём уведомления для всех участников комнаты, кроме отправителя
-        for participant in room.participants.exclude(id=sender.id):
-            # Обрезаем текст сообщения для уведомления (макс 100 символов)
-            message_preview = content[:100] + ('...' if len(content) > 100 else '')
-            Notification.objects.create(
-                user=participant,
-                notification_type='new_message',
-                title=f'Новое сообщение от {sender.username}',
-                message=f'{message_preview}',
-                related_user=sender
-            )
-        
+
         return {
             'id': message.id,
             'sender': {

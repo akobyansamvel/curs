@@ -87,25 +87,21 @@ function ChatPage() {
 
   const handleSendMessage = async (content) => {
     if (!content.trim()) return
-    
+
     try {
       const response = await api.post(`/chat/rooms/${id}/send/`, {
         content: content.trim()
       })
-      
+
       setMessages(prev => {
         const exists = prev.some(msg => msg.id === response.data.id)
         if (exists) return prev
         return [...prev, response.data]
       })
-      
+
       setTimeout(() => {
         loadMessages()
       }, 500)
-      
-      if (websocket.ws && websocket.ws.readyState === WebSocket.OPEN) {
-        websocket.sendMessage(content)
-      }
     } catch (error) {
       console.error('Ошибка отправки сообщения:', error)
       alert('Не удалось отправить сообщение')

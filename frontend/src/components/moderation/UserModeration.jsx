@@ -7,6 +7,7 @@ function UserModeration() {
   const [bans, setBans] = useState([])
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('active')
   const [showBanForm, setShowBanForm] = useState(false)
   const [banForm, setBanForm] = useState({
     user_id: '',
@@ -44,7 +45,7 @@ function UserModeration() {
 
   const handleCreateBan = async (e) => {
     e.preventDefault()
-    
+
     if (!banForm.user_id || !banForm.reason) {
       alert('Заполните все обязательные поля')
       return
@@ -53,12 +54,7 @@ function UserModeration() {
     try {
       await api.post('/moderation/bans/create/', banForm)
       setShowBanForm(false)
-      setBanForm({
-        user_id: '',
-        ban_type: 'temporary',
-        reason: '',
-        ends_at: ''
-      })
+      setBanForm({ user_id: '', ban_type: 'temporary', reason: '', ends_at: '' })
       loadBans()
       alert('Блокировка создана')
     } catch (error) {
@@ -68,9 +64,7 @@ function UserModeration() {
   }
 
   const handleUnban = async (userId) => {
-    if (!window.confirm('Вы уверены, что хотите разблокировать этого пользователя?')) {
-      return
-    }
+    if (!window.confirm('Вы уверены, что хотите разблокировать этого пользователя?')) return
 
     try {
       await api.post(`/moderation/users/${userId}/moderate/`, { action: 'unban' })
@@ -81,6 +75,10 @@ function UserModeration() {
       alert('Не удалось разблокировать пользователя')
     }
   }
+
+  const activeBans = bans.filter(b => b.is_active)
+  const historyBans = bans.filter(b => !b.is_active)
+  const displayedBans = activeTab === 'active' ? activeBans : historyBans
 
   if (loading) {
     return <div>Загрузка...</div>
@@ -155,18 +153,41 @@ function UserModeration() {
         </form>
       )}
 
+      <div className="bans-tabs">
+        <button
+          className={`tab-btn ${activeTab === 'active' ? 'tab-btn--active' : ''}`}
+          onClick={() => setActiveTab('active')}
+        >
+          Активные
+          {activeBans.length > 0 && (
+            <span className="tab-count">{activeBans.length}</span>
+          )}
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'history' ? 'tab-btn--active' : ''}`}
+          onClick={() => setActiveTab('history')}
+        >
+          История
+          {historyBans.length > 0 && (
+            <span className="tab-count tab-count--inactive">{historyBans.length}</span>
+          )}
+        </button>
+      </div>
+
       <div className="bans-list">
-        {bans.length === 0 ? (
-          <p className="no-bans">Нет блокировок</p>
+        {displayedBans.length === 0 ? (
+          <p className="no-bans">
+            {activeTab === 'active' ? 'Нет активных блокировок' : 'История блокировок пуста'}
+          </p>
         ) : (
-          bans.map(ban => (
-            <div key={ban.id} className="ban-item">
+          displayedBans.map(ban => (
+            <div key={ban.id} className={`ban-item ${!ban.is_active ? 'ban-item--inactive' : ''}`}>
               <div className="ban-header">
                 <Link to={`/profile/${ban.user?.id}/`} className="ban-user-link">
                   <strong>{ban.user?.username}</strong>
                 </Link>
                 <span className={`ban-status ${ban.is_active ? 'active' : 'inactive'}`}>
-                  {ban.is_active ? 'Активна' : 'Неактивна'}
+                  {ban.is_active ? 'Активна' : 'Истекла'}
                 </span>
               </div>
               <div className="ban-details">

@@ -320,6 +320,15 @@ def request_create(request):
             except User.DoesNotExist:
                 pass
         
+        # Уведомление создателю о том, что заявка успешно создана
+        Notification.objects.create(
+            user=request.user,
+            notification_type='request_created',
+            title='Заявка создана',
+            message=f'Ваша заявка "{req.title}" успешно создана и опубликована',
+            related_request=req,
+        )
+
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -381,8 +390,8 @@ def request_edit(request, pk):
                         related_user=request.user
                     )
             
-            # Уведомление о переносе (если изменилась дата)
-            if new_date != old_date and new_status == 'active':
+            # Уведомление о переносе (если изменилась дата и заявка не отменена)
+            if new_date != old_date and new_status not in ('cancelled', 'completed'):
                 participations = Participation.objects.filter(
                     request=req,
                     status='approved'
@@ -425,24 +434,52 @@ def request_delete(request, pk):
         
         # Получаем причину удаления (для модераторов)
         reason = request.data.get('reason', '') if is_mod else ''
-        
-        # Сохраняем информацию о создателе перед удалением
+
+        # Сохраняем нужные данные ДО удаления
         creator = req.creator
         request_title = req.title
-        
+        participants = list(
+            Participation.objects.filter(
+                request=req, status='approved'
+            ).exclude(user=creator).select_related('user')
+        )
+
         # Удаляем заявку
         req.delete()
-        
-        # Если удалил модератор и указана причина - отправляем уведомление
-        if is_mod and reason and creator:
-            from apps.notifications.models import Notification
-            Notification.objects.create(
-                user=creator,
-                notification_type='request_cancelled',
-                title='Заявка удалена модератором',
-                message=f'Ваша заявка "{request_title}" была удалена модератором. Причина: {reason}',
-                related_user=request.user
-            )
+
+        from apps.notifications.models import Notification
+
+        if is_mod:
+            # Уведомляем создателя
+            if creator:
+                Notification.objects.create(
+                    user=creator,
+                    notification_type='request_cancelled',
+                    title='Заявка удалена модератором',
+                    message=f'Ваша заявка "{request_title}" была удалена модератором'
+                    + (f'. Причина: {reason}' if reason else ''),
+                    related_user=request.user
+                )
+            # Уведомляем участников
+            for p in participants:
+                Notification.objects.create(
+                    user=p.user,
+                    notification_type='request_cancelled',
+                    title='Заявка удалена',
+                    message=f'Заявка "{request_title}", в которой вы участвовали, была удалена модератором'
+                    + (f'. Причина: {reason}' if reason else ''),
+                    related_user=request.user
+                )
+        else:
+            # Создатель сам удалил — уведомляем участников
+            for p in participants:
+                Notification.objects.create(
+                    user=p.user,
+                    notification_type='request_cancelled',
+                    title='Заявка отменена',
+                    message=f'Заявка "{request_title}", в которой вы участвовали, была отменена создателем',
+                    related_user=creator
+                )
         
         return Response({'message': 'Заявка удалена'}, status=status.HTTP_200_OK)
     except Request.DoesNotExist:
@@ -518,7 +555,17 @@ def participate(request, pk):
             related_request=req,
             related_user=request.user
         )
-        
+
+        # Уведомление вступившему пользователю о подтверждении участия
+        Notification.objects.create(
+            user=request.user,
+            notification_type='participation_approved',
+            title='Участие подтверждено',
+            message=f'Вы успешно вступили в заявку "{req.title}"',
+            related_request=req,
+            related_user=req.creator
+        )
+
         serializer = ParticipationSerializer(participation)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     except Request.DoesNotExist:

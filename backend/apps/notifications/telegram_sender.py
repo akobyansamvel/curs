@@ -35,6 +35,7 @@ def send_telegram_notification(user: User, title: str, message: str, notificatio
         
         # Добавляем эмодзи в зависимости от типа уведомления
         emoji_map = {
+            'request_created': '📝',
             'new_response': '👤',
             'participation_approved': '✅',
             'participation_rejected': '❌',

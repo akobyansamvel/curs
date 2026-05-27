@@ -5,6 +5,7 @@ from apps.accounts.models import User
 class Notification(models.Model):
     """Уведомление пользователя"""
     NOTIFICATION_TYPES = [
+        ('request_created', 'Заявка создана'),
         ('new_response', 'Новый отклик'),
         ('participation_approved', 'Участие подтверждено'),
         ('participation_rejected', 'Участие отклонено'),
