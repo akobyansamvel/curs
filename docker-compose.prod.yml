@@ -1,19 +1,4 @@
 services:
-  db:
-    image: postgres:15-alpine
-    restart: always
-    environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   redis:
     image: redis:7-alpine
     restart: always
@@ -31,15 +16,12 @@ services:
     env_file:
       - .env
     environment:
-      DB_HOST: db
-      DB_PORT: "5432"
       REDIS_URL: redis://redis:6379
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_healthy
     volumes:
+      - sqlite_data:/app/db
       - media_data:/app/media
 
   telegram_bot:
@@ -50,14 +32,12 @@ services:
     env_file:
       - .env
     environment:
-      DB_HOST: db
-      DB_PORT: "5432"
       REDIS_URL: redis://redis:6379
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - sqlite_data:/app/db
 
   frontend:
     image: ${FRONTEND_IMAGE}
@@ -70,12 +50,14 @@ services:
     restart: always
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - frontend
       - backend
 
 volumes:
-  postgres_data:
+  sqlite_data:
   media_data:
